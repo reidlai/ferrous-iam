@@ -1,0 +1,19 @@
+# Kanidm Daemon Configuration for FerrousCX
+# Reference: https://kanidm.github.io/kanidm/master/server_configuration.html
+
+version = "1"
+bindaddress = "[::]:8443"
+ldapbindaddress = "[::]:3636"
+origin = "https://localhost:8443"
+domain = "ferrouscx.local"
+
+# Database storage path
+db_path = "/data/kanidm/kanidm.db"
+
+# TLS Configuration
+tls_chain = "/etc/kanidm/certs/chain.pem"
+tls_key = "/etc/kanidm/certs/key.pem"
+
+# Logging & Operational Parameters
+log_level = "info"
+role = "write"
