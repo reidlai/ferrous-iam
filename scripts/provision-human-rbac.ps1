@@ -83,7 +83,7 @@ foreach ($g in $seed.groups) {
 foreach ($u in $seed.users) {
     $envVar = $u.env_password_var
     $password = [System.Environment]::GetEnvironmentVariable($envVar, "Process")
-    if (-not $password) {
+    if (-not $password -or $password.StartsWith("<")) {
         $password = "DevDefaultPass2026!"
     }
     Write-Host "    Ensuring user: $($u.username) ($($u.group)) [Password sourced from $envVar]"

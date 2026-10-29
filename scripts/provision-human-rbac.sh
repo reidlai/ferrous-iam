@@ -73,6 +73,9 @@ if command -v jq >/dev/null 2>&1; then
         ugroup=$(echo "$user" | jq -r '.group')
         varname=$(echo "$user" | jq -r '.env_password_var')
         upass="${!varname:-DevDefaultPass2026!}"
+        if [[ "$upass" =~ ^\<.* ]]; then
+            upass="DevDefaultPass2026!"
+        fi
 
         echo "    Ensuring user: $uname ($ugroup) [Password sourced from $varname]"
         docker exec -i ferrous-iam kanidm person create "$uname" "$dname" 2>/dev/null || true
