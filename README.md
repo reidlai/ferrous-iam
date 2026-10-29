@@ -187,7 +187,7 @@ curl -k https://localhost:8443/oauth2/openid/ferrous-frontend/.well-known/openid
 Bound by **AD-13**, `ferrous-iam` implements strict container security standards enforced via `.github/workflows/devsecops-infra-ci.yml`:
 
 * **Non-Root Execution:** The Kanidm service runs under the unprivileged `kanidm:kanidm` (UID 10001) user.
-* **Pinned Base Images:** Built against cryptographically pinned official releases (`kanidm/server:1.5.4`).
+* **Pinned Base Images:** Built against cryptographically pinned official releases (`kanidm/server:1.11.2`).
 * **Continuous Vulnerability Auditing:** Tested with `trivy` with a zero HIGH/CRITICAL vulnerability tolerance (`exit-code: 1`).
 * **Linting:** Scanned with `hadolint` for Dockerfile best practices.
 * **Secret Detection:** Scanned with `gitleaks` to prevent accidental credential leakage in repository history.

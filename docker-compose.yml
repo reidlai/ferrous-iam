@@ -12,11 +12,11 @@ services:
     volumes:
       - ./config/server.toml:/etc/kanidm/server.toml:ro
       - ./config/certs:/etc/kanidm/certs:ro
-      - kanidm_data:/data/kanidm
+      - kanidm_data:/data
     environment:
       - KANIDM_CONFIG_PATH=/etc/kanidm/server.toml
     healthcheck:
-      test: ["CMD-SHELL", "/sbin/kanidmd healthcheck -c /etc/kanidm/server.toml || exit 1"]
+      test: ["CMD", "/sbin/kanidmd", "healthcheck", "-c", "/etc/kanidm/server.toml"]
       interval: 10s
       timeout: 5s
       retries: 3
