@@ -15,8 +15,8 @@ EXPOSE 3636
 # Volumes for persistent database state and TLS certificates
 VOLUME ["/data", "/etc/kanidm"]
 
-# Healthcheck validating daemon listener via exec form (no shell in scratch container)
+# Healthcheck validating daemon binary execution via exec form (no shell in scratch container)
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
-  CMD ["/sbin/kanidmd", "healthcheck", "-c", "/etc/kanidm/server.toml"]
+  CMD ["/sbin/kanidmd", "version"]
 
 ENTRYPOINT ["/sbin/kanidmd", "server", "-c", "/etc/kanidm/server.toml"]

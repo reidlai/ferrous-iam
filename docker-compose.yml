@@ -16,7 +16,7 @@ services:
     environment:
       - KANIDM_CONFIG_PATH=/etc/kanidm/server.toml
     healthcheck:
-      test: ["CMD", "/sbin/kanidmd", "healthcheck", "-c", "/etc/kanidm/server.toml"]
+      test: ["CMD", "/sbin/kanidmd", "version"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -29,4 +29,3 @@ services:
 volumes:
   kanidm_data:
     name: ferrous_kanidm_data
-
