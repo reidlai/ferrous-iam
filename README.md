@@ -124,11 +124,12 @@ ferrous-iam/
 
 ---
 
-### Step 1: Environment Preparation (`.env` Configuration)
+### Step 1: Initialize Local Environment Variables (`.env`)
 
-In compliance with DevSecOps guidelines, plaintext secrets and passwords must never be committed to Git. Instead, secrets are decoupled into a local `.env` file that is git-ignored.
+In compliance with DevSecOps guidelines, plaintext credentials are never committed to Git. Instead, settings and secrets are decoupled into a local `.env` file that is git-ignored.
 
-#### 1. Copy the Environment Template:
+Copy the provided environment template to initialize your local `.env`:
+
 ```bash
 # On Linux / macOS
 cp .env.example .env
@@ -139,32 +140,7 @@ cp .env.example .env
 Copy-Item .env.example .env
 ```
 
-#### 2. Review and Customize Environment Variables:
-The generated `.env` file contains the following configurations used by the provisioning automation and Web UI:
-
-```ini
-# Kanidm Administrative Account (Web UI at https://localhost:8443)
-ADMIN_SEC_USERNAME=admin.sec
-ADMIN_SEC_PASSWORD=AdminSecurityMaster2026!
-
-# FerrousCX Human Personas
-CARLOS_SUPPORT_PASSWORD=CarlosSupportPass2026!
-OPS_LEAD_PASSWORD=OpsLeadManagerPass2026!
-
-# Kanidm OIDC Client Application
-FERROUS_FRONTEND_CLIENT_ID=ferrous-frontend
-```
-
-| Variable | Description | Default Dev Value | Used By |
-| :--- | :--- | :--- | :--- |
-| `ADMIN_SEC_USERNAME` | Web UI & CLI system administrator account | `admin.sec` | Kanidm Admin Auth |
-| `ADMIN_SEC_PASSWORD` | System administrator password | `AdminSecurityMaster2026!` | Web UI login (`:8443`) & CLI |
-| `CARLOS_SUPPORT_PASSWORD` | Password for Customer Support Specialist | `CarlosSupportPass2026!` | `scripts/provision-human-rbac.*` |
-| `OPS_LEAD_PASSWORD` | Password for Operations Manager persona | `OpsLeadManagerPass2026!` | `scripts/provision-human-rbac.*` |
-| `FERROUS_FRONTEND_CLIENT_ID`| OIDC Application Client ID | `ferrous-frontend` | Frontend Svelte OIDC PKCE |
-
-> [!NOTE]
-> For local development, the defaults in `.env.example` work out-of-the-box. For production or staging deployments, customize these values or inject them via Kubernetes Secrets or HashiCorp Vault.
+*(Optional: You can inspect and adjust configuration variables in `.env` if desired for your local setup.)*
 
 ---
 
