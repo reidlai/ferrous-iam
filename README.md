@@ -116,37 +116,68 @@ ferrous-iam/
 ## 🛠️ Developer Quickstart (< 3 minutes)
 
 ### Prerequisites
-* Docker & Docker Compose (`v2.20+`)
-* OpenSSL (for local TLS certificate generation)
 
-### 1. Initialize Local Environment Variables (DevSecOps)
+| OS Platform | Container Runtime | CLI / Scripting Tools | Cryptography |
+| :--- | :--- | :--- | :--- |
+| **Linux / macOS** | Docker & Docker Compose (`v2.20+`) | Bash (`4.0+`) | `openssl` (installed via system package manager) |
+| **Windows** | Docker Desktop (with WSL 2 engine running) | PowerShell (`5.1` or `7+`) | `openssl.exe` (included with Git for Windows in `C:\Program Files\Git\usr\bin` or Winget) |
+
+---
+
+### Step 1: Initialize Local Environment Variables (DevSecOps)
+
 Copy the template `.env.example` to `.env` (which is git-ignored to prevent credential leaks):
 
 ```bash
 # On Linux / macOS
 cp .env.example .env
+```
 
+```powershell
 # On Windows PowerShell
 Copy-Item .env.example .env
 ```
 
-### 2. Generate Development TLS Certificates
+---
+
+### Step 2: Generate Development TLS Certificates
+
+Kanidm requires valid TLS certificates to boot. Generate self-signed certificates into `config/certs/`:
+
 ```bash
 # On Linux / macOS
 ./scripts/generate-dev-certs.sh
+```
 
+```powershell
 # On Windows PowerShell
 powershell -ExecutionPolicy Bypass -File scripts/generate-dev-certs.ps1
 ```
 
-### 3. Launch Kanidm Daemon
+---
+
+### Step 3: Launch Kanidm Daemon
+
+Ensure your Docker engine is running, then boot the container in the background:
+
 ```bash
+# On Linux / macOS
 docker compose up -d
 ```
 
-### 4. Provision Human Personas & M2M Service Accounts
+```powershell
+# On Windows PowerShell (ensure Docker Desktop shows "Engine running")
+docker compose up -d
 
-You can provision all 3 RBAC personas and 6 M2M service accounts using the automated cross-platform scripts:
+# Verify container is running and healthy:
+docker compose ps
+```
+
+---
+
+### Step 4: Provision Human Personas & M2M Service Accounts
+
+Once the container is healthy, provision the 3 RBAC personas and 6 M2M service accounts:
 
 ```bash
 # On Linux / macOS
@@ -160,24 +191,40 @@ powershell -ExecutionPolicy Bypass -File scripts/provision-human-rbac.ps1
 powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
 ```
 
-### 5. Kanidm Web UI & Administrative Console
+---
+
+### Step 5: Kanidm Web UI & Administrative Console
 
 Kanidm includes a built-in Web UI accessible directly from your browser:
-* **Web UI URL:** `https://localhost:8443`
+* **Web UI URL:** `https://localhost:8443` (accept the local self-signed certificate warning)
 * **Admin Username:** `admin.sec`
 * **Where to Find / Configure Login & Credentials:**
   - In compliance with DevSecOps standards, plaintext passwords are **never committed to Git**.
-  - The administrator password is read from the `ADMIN_SEC_PASSWORD` variable in your local `.env` file (copied from `.env.example`).
+  - Sourced from the `ADMIN_SEC_PASSWORD` variable in your local `.env` file (copied in Step 1).
   - Persona passwords are configured via `CARLOS_SUPPORT_PASSWORD` and `OPS_LEAD_PASSWORD` in `.env`.
-  - In production and CI/CD environments, credentials are dynamically injected via Kubernetes Secrets or Cloud Secret Managers (Vault / AWS Secrets Manager).
+  - In production and CI/CD environments, credentials are dynamically injected via Kubernetes Secrets or Cloud Secret Managers.
 * **Capabilities in UI:**
   - View, manage, and inspect user profiles and groups
   - Register MFA / FIDO2 / WebAuthn security keys
   - Manage OAuth2 / OIDC client integrations and active sessions
 
-### 6. Verify Health and OIDC Discovery
+---
+
+### Step 6: Verify Health and Daemon Status
+
+Verify that the Kanidm daemon is healthy and responding over HTTPS:
+
 ```bash
-curl -k https://localhost:8443/oauth2/openid/ferrous-frontend/.well-known/openid-configuration
+# On Linux / macOS
+curl -k -I https://localhost:8443/status
+```
+
+```powershell
+# On Windows PowerShell (using curl.exe to avoid PowerShell's curl alias)
+curl.exe -k -I https://localhost:8443/status
+
+# Or using native PowerShell cmdlet (PowerShell 7+)
+Invoke-WebRequest -SkipCertificateCheck -Uri https://localhost:8443/status
 ```
 
 ---
