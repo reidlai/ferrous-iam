@@ -1,0 +1,57 @@
+name: DevSecOps Tier-2 CI
+
+on:
+  push:
+    branches: [ main, epic-* ]
+  pull_request:
+    branches: [ main, epic-* ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  docker-lint:
+    name: Hadolint Dockerfile Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
+  security-scan:
+    name: Trivy Vulnerability & Config Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (Repo & Config)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs,config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+
+  secret-detection:
+    name: Gitleaks Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_FAIL: "true"
