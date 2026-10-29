@@ -201,12 +201,23 @@ powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
 
 Kanidm includes a built-in Web UI accessible directly from your browser:
 * **Web UI URL:** `https://localhost:8443` (accept the local self-signed certificate warning)
-* **Admin Username:** `admin.sec`
-* **Where to Find / Configure Login & Credentials:**
-  - In compliance with DevSecOps standards, plaintext passwords are **never committed to Git**.
-  - Sourced from the `ADMIN_SEC_PASSWORD` variable in your local `.env` file (copied in Step 1).
-  - Persona passwords are configured via `CARLOS_SUPPORT_PASSWORD` and `OPS_LEAD_PASSWORD` in `.env`.
-  - In production and CI/CD environments, credentials are dynamically injected via Kubernetes Secrets or Cloud Secret Managers.
+* **Root Administrator Username:** `admin`
+
+#### Initial Admin Login:
+1. Kanidm's built-in root administrator username is **`admin`** (not `admin.sec`).
+2. Generate an admin recovery password via Docker:
+   ```bash
+   # On Linux / macOS
+   docker exec -it ferrous-iam /sbin/kanidmd recover-account -c /etc/kanidm/server.toml admin
+   ```
+   ```powershell
+   # On Windows PowerShell
+   docker exec -it ferrous-iam /sbin/kanidmd recover-account -c /etc/kanidm/server.toml admin
+   ```
+3. Open `https://localhost:8443` in your browser.
+4. Type **`admin`** in the Username box and click **Begin**.
+5. Paste the generated password into the password prompt to log into the Kanidm Management Console.
+
 * **Capabilities in UI:**
   - View, manage, and inspect user profiles and groups
   - Register MFA / FIDO2 / WebAuthn security keys
