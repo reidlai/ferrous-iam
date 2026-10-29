@@ -1,0 +1,49 @@
+{
+  "domain": "ferrouscx.local",
+  "groups": [
+    {
+      "name": "customer_specialist",
+      "description": "Customer Support Specialist with access to active orders, sentiment radar, and courtesy credit proposals up to $15"
+    },
+    {
+      "name": "operations_manager",
+      "description": "Operations Manager with authority to approve courtesy credits up to $20 and manage carrier SLAs"
+    },
+    {
+      "name": "system_admin",
+      "description": "System Administrator with full platform governance and policy management authority"
+    }
+  ],
+  "users": [
+    {
+      "username": "carlos.support",
+      "display_name": "Carlos Silva",
+      "legal_name": "Carlos Eduardo Silva",
+      "email": "carlos.support@ferrouscx.local",
+      "group": "customer_specialist",
+      "dev_password": "CarlosSupportPass2026!"
+    },
+    {
+      "username": "operations.lead",
+      "display_name": "Operations Lead",
+      "legal_name": "Mariana Souza",
+      "email": "operations.lead@ferrouscx.local",
+      "group": "operations_manager",
+      "dev_password": "OpsLeadManagerPass2026!"
+    },
+    {
+      "username": "admin.sec",
+      "display_name": "Security Admin",
+      "legal_name": "System Security Administrator",
+      "email": "admin.sec@ferrouscx.local",
+      "group": "system_admin",
+      "dev_password": "AdminSecurityMaster2026!"
+    }
+  ],
+  "oauth2": {
+    "client_id": "ferrouscx-frontend",
+    "display_name": "FerrousCX Svelte Resolution Studio",
+    "redirect_uri": "http://localhost:5173/auth/callback",
+    "scopes": ["openid", "profile", "email", "roles"]
+  }
+}
