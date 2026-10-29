@@ -1,66 +1,84 @@
 #!/usr/bin/env bash
+# Bash Human RBAC Provisioner for FerrousCX Kanidm
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SEED_FILE="${SCRIPT_DIR}/../config/seed-rbac.json"
-KANIDM_URL="${KANIDM_URL:-https://localhost:8443}"
-ADMIN_TOKEN="${ADMIN_TOKEN:-}"
+SUBMODULE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SEED_FILE="${SUBMODULE_DIR}/config/seed-rbac.json"
+ENV_FILE="${SUBMODULE_DIR}/.env"
+ENV_EXAMPLE="${SUBMODULE_DIR}/.env.example"
+DRY_RUN=0
 
-# Parse optional dry-run flag
-DRY_RUN=false
 for arg in "$@"; do
-  if [ "$arg" == "--dry-run" ]; then
-    DRY_RUN=true
-  fi
+    case "$arg" in
+        --dry-run|-d)
+            DRY_RUN=1
+            shift
+            ;;
+    esac
 done
 
-echo "==> Loading seed configuration from: ${SEED_FILE}"
-if [ ! -f "${SEED_FILE}" ]; then
-  echo "ERROR: Seed file not found at ${SEED_FILE}" >&2
-  exit 1
+if [ -f "$ENV_FILE" ]; then
+    echo "==> Loading credentials from local .env (git-ignored)..."
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+elif [ -f "$ENV_EXAMPLE" ]; then
+    echo "==> No .env found. Sourcing fallback defaults from .env.example..."
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_EXAMPLE"
+    set +a
 fi
 
-if [ "$DRY_RUN" = true ]; then
-  echo "==> DRY-RUN: Validating JSON configuration..."
-  python3 -c "import json; f=open('${SEED_FILE}'); data=json.load(f); print(f'Validated {len(data[\"groups\"])} groups and {len(data[\"users\"])} users.')" 2>/dev/null || \
-  python -c "import json; f=open('${SEED_FILE}'); data=json.load(f); print(f'Validated {len(data[\"groups\"])} groups and {len(data[\"users\"])} users.')"
-  echo "==> DRY-RUN completed successfully."
-  exit 0
+if [ ! -f "$SEED_FILE" ]; then
+    echo "[-] Seed file not found at $SEED_FILE" >&2
+    exit 1
 fi
 
-echo "==> Connecting to Kanidm daemon at ${KANIDM_URL}..."
+echo "==> Loaded seed configuration: $SEED_FILE"
 
-# In Docker environments, execute commands inside container or via CLI
-KANIDM_CMD="kanidm"
-if ! command -v kanidm &> /dev/null; then
-  if docker ps --format '{{.Names}}' | grep -q "^ferrous-iam$"; then
-    KANIDM_CMD="docker exec -i ferrous-iam kanidm"
-  else
-    echo "WARNING: Neither local 'kanidm' CLI nor running 'ferrous-iam' container found."
-    echo "Configuration verified. Skipping live socket provisioning."
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "==> DRY-RUN: Validating RBAC definitions..."
+    if command -v jq >/dev/null 2>&1; then
+        echo "    Groups:"
+        jq -r '.groups[] | "      - " + .name + ": " + .description' "$SEED_FILE"
+        echo "    Users:"
+        jq -r '.users[] | "      - " + .username + " (" + .group + ") [Password source: " + .env_password_var + "]"' "$SEED_FILE"
+    else
+        grep -E '"name"|"username"|"env_password_var"' "$SEED_FILE"
+    fi
+    echo "==> DRY-RUN completed successfully."
     exit 0
-  fi
 fi
 
-# 1. Create RBAC Groups
-echo "==> Provisioning Human RBAC Groups..."
-$KANIDM_CMD group create customer_specialist 2>/dev/null || echo "Group customer_specialist already exists."
-$KANIDM_CMD group create operations_manager 2>/dev/null || echo "Group operations_manager already exists."
-$KANIDM_CMD group create system_admin 2>/dev/null || echo "Group system_admin already exists."
+if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^ferrous-iam$"; then
+    echo "[!] Container 'ferrous-iam' is not currently running. Start it with: docker compose up -d"
+    exit 0
+fi
 
-# 2. Create Human Personas
-echo "==> Provisioning Human Personas..."
-$KANIDM_CMD person create carlos.support "Carlos Silva" 2>/dev/null || echo "Person carlos.support already exists."
-$KANIDM_CMD person credential create-password carlos.support "CarlosSupportPass2026!" 2>/dev/null || true
-$KANIDM_CMD group add_members customer_specialist carlos.support 2>/dev/null || true
+echo "==> Executing idempotent provisioning inside container..."
 
-$KANIDM_CMD person create operations.lead "Operations Lead" 2>/dev/null || echo "Person operations.lead already exists."
-$KANIDM_CMD person credential create-password operations.lead "OpsLeadManagerPass2026!" 2>/dev/null || true
-$KANIDM_CMD group add_members operations_manager operations.lead 2>/dev/null || true
+if command -v jq >/dev/null 2>&1; then
+    jq -c '.groups[]' "$SEED_FILE" | while read -r group; do
+        gname=$(echo "$group" | jq -r '.name')
+        echo "    Ensuring group: $gname"
+        docker exec -i ferrous-iam kanidm group create "$gname" 2>/dev/null || true
+    done
 
-$KANIDM_CMD person create admin.sec "Security Admin" 2>/dev/null || echo "Person admin.sec already exists."
-$KANIDM_CMD person credential create-password admin.sec "AdminSecurityMaster2026!" 2>/dev/null || true
-$KANIDM_CMD group add_members system_admin admin.sec 2>/dev/null || true
+    jq -c '.users[]' "$SEED_FILE" | while read -r user; do
+        uname=$(echo "$user" | jq -r '.username')
+        dname=$(echo "$user" | jq -r '.display_name')
+        ugroup=$(echo "$user" | jq -r '.group')
+        varname=$(echo "$user" | jq -r '.env_password_var')
+        upass="${!varname:-DevDefaultPass2026!}"
 
-echo "==> Human RBAC personas and basic auth policies successfully configured!"
+        echo "    Ensuring user: $uname ($ugroup) [Password sourced from $varname]"
+        docker exec -i ferrous-iam kanidm person create "$uname" "$dname" 2>/dev/null || true
+        docker exec -i ferrous-iam kanidm person credential create-password "$uname" "$upass" 2>/dev/null || true
+        docker exec -i ferrous-iam kanidm group add_members "$ugroup" "$uname" 2>/dev/null || true
+    done
+fi
 
+echo "==> Human RBAC personas provisioned successfully!"

@@ -5,7 +5,34 @@ param (
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$seedFile = Join-Path (Split-Path -Parent $scriptDir) "config\seed-rbac.json"
+$submoduleDir = Split-Path -Parent $scriptDir
+$seedFile = Join-Path $submoduleDir "config\seed-rbac.json"
+$envFile = Join-Path $submoduleDir ".env"
+$envExampleFile = Join-Path $submoduleDir ".env.example"
+
+# Load local .env if present (or fallback to .env.example for defaults)
+if (Test-Path $envFile) {
+    Write-Host "==> Loading credentials from local .env (git-ignored)..."
+    Get-Content $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $parts = $line.Split("=", 2)
+            [System.Environment]::SetEnvironmentVariable($parts[0].Trim(), $parts[1].Trim(), "Process")
+        }
+    }
+} elseif (Test-Path $envExampleFile) {
+    Write-Host "==> No .env found. Sourcing fallback defaults from .env.example..."
+    Get-Content $envExampleFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $parts = $line.Split("=", 2)
+            $varName = $parts[0].Trim()
+            if (-not [System.Environment]::GetEnvironmentVariable($varName, "Process")) {
+                [System.Environment]::SetEnvironmentVariable($varName, $parts[1].Trim(), "Process")
+            }
+        }
+    }
+}
 
 if (-not (Test-Path $seedFile)) {
     Write-Error "Seed file not found at $seedFile"
@@ -19,7 +46,11 @@ Write-Host "==> Loaded seed configuration for domain: $($seed.domain)"
 if ($DryRun) {
     Write-Host "==> DRY-RUN: Validating RBAC definitions..."
     Write-Host "    Groups ($($seed.groups.Count)): $($seed.groups.name -join ', ')"
-    Write-Host "    Users  ($($seed.users.Count)):  $($seed.users.username -join ', ')"
+    foreach ($u in $seed.users) {
+        $envVar = $u.env_password_var
+        $isConfigured = [bool][System.Environment]::GetEnvironmentVariable($envVar, "Process")
+        Write-Host "    User: $($u.username) [$($u.group)] -> Password source: $envVar (Configured: $isConfigured, Secret REDACTED)"
+    }
     Write-Host "==> DRY-RUN completed successfully."
     exit 0
 }
@@ -50,11 +81,15 @@ foreach ($g in $seed.groups) {
 }
 
 foreach ($u in $seed.users) {
-    Write-Host "    Ensuring user: $($u.username) ($($u.group))"
+    $envVar = $u.env_password_var
+    $password = [System.Environment]::GetEnvironmentVariable($envVar, "Process")
+    if (-not $password) {
+        $password = "DevDefaultPass2026!"
+    }
+    Write-Host "    Ensuring user: $($u.username) ($($u.group)) [Password sourced from $envVar]"
     docker exec -i ferrous-iam kanidm person create $u.username $u.display_name 2>$null | Out-Null
-    docker exec -i ferrous-iam kanidm person credential create-password $u.username $u.dev_password 2>$null | Out-Null
+    docker exec -i ferrous-iam kanidm person credential create-password $u.username $password 2>$null | Out-Null
     docker exec -i ferrous-iam kanidm group add_members $u.group $u.username 2>$null | Out-Null
 }
 
 Write-Host "==> Human RBAC personas provisioned successfully!"
-

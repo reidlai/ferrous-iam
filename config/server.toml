@@ -17,3 +17,4 @@ tls_key = "/etc/kanidm/certs/key.pem"
 # Logging & Operational Parameters
 log_level = "info"
 role = "write"
+

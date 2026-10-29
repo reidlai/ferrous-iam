@@ -29,3 +29,4 @@ services:
 volumes:
   kanidm_data:
     name: ferrous_kanidm_data
+

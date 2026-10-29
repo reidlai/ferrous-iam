@@ -21,7 +21,7 @@
       "legal_name": "Carlos Eduardo Silva",
       "email": "carlos.support@ferrouscx.local",
       "group": "customer_specialist",
-      "dev_password": "CarlosSupportPass2026!"
+      "env_password_var": "CARLOS_SUPPORT_PASSWORD"
     },
     {
       "username": "operations.lead",
@@ -29,7 +29,7 @@
       "legal_name": "Mariana Souza",
       "email": "operations.lead@ferrouscx.local",
       "group": "operations_manager",
-      "dev_password": "OpsLeadManagerPass2026!"
+      "env_password_var": "OPS_LEAD_PASSWORD"
     },
     {
       "username": "admin.sec",
@@ -37,7 +37,7 @@
       "legal_name": "System Security Administrator",
       "email": "admin.sec@ferrouscx.local",
       "group": "system_admin",
-      "dev_password": "AdminSecurityMaster2026!"
+      "env_password_var": "ADMIN_SEC_PASSWORD"
     }
   ],
   "oauth2": {

@@ -52,13 +52,13 @@ flowchart TD
 
 ## 👥 Pre-Seeded Identities & RBAC Roles
 
-To ensure friction-free local evaluation, the submodule automatically provisions three demo personas upon boot:
+To ensure friction-free local evaluation while strictly maintaining DevSecOps hygiene (preventing committed credentials in Git), the submodule provisions three demo personas whose credentials are decoupled and injected via environment variables (`.env` file):
 
-| Username | Default Password | Role | Permissions & Scope |
+| Username | Role | Credential Source (Env Var) | Permissions & Scope |
 | :--- | :--- | :--- | :--- |
-| **`carlos.support`** | `CarlosSupportPass2026!` | `customer_specialist` | Access order resolution canvas, search reviews via vector search, request courtesy credits up to $15.00 via HITL proposal cards. |
-| **`operations.lead`** | `OpsLeadManagerPass2026!` | `operations_manager` | Review high-priority dispute queues, approve courtesy credits up to $20.00 maximum, manage carrier SLAs and operational metrics. |
-| **`admin.sec`** | `AdminSecurityMaster2026!` | `system_admin` | Manage platform governance, Kanidm security policies, token introspection, and system-level IAM configurations. |
+| **`carlos.support`** | `customer_specialist` | `$CARLOS_SUPPORT_PASSWORD` | Access order resolution canvas, search reviews via vector search, request courtesy credits up to $15.00 via HITL proposal cards. |
+| **`operations.lead`** | `operations_manager` | `$OPS_LEAD_PASSWORD` | Review high-priority dispute queues, approve courtesy credits up to $20.00 maximum, manage carrier SLAs and operational metrics. |
+| **`admin.sec`** | `system_admin` | `$ADMIN_SEC_PASSWORD` | Manage platform governance, Kanidm security policies, token introspection, and system-level IAM configurations. |
 
 ---
 
@@ -93,6 +93,7 @@ In addition to interactive user personas, `ferrous-iam` provisions 6 dedicated O
 ferrous-iam/
 ├── .github/workflows/
 │   └── devsecops-infra-ci.yml   # Tier 2 DevSecOps GitHub Actions workflow (Hadolint, Trivy, Gitleaks)
+├── .env.example                  # Environment variable template for credentials & config
 ├── config/
 │   ├── server.toml               # Kanidm daemon configuration
 │   ├── seed-rbac.json            # Human personas and role declarations
@@ -118,7 +119,18 @@ ferrous-iam/
 * Docker & Docker Compose (`v2.20+`)
 * OpenSSL (for local TLS certificate generation)
 
-### 1. Generate Development TLS Certificates
+### 1. Initialize Local Environment Variables (DevSecOps)
+Copy the template `.env.example` to `.env` (which is git-ignored to prevent credential leaks):
+
+```bash
+# On Linux / macOS
+cp .env.example .env
+
+# On Windows PowerShell
+Copy-Item .env.example .env
+```
+
+### 2. Generate Development TLS Certificates
 ```bash
 # On Linux / macOS
 ./scripts/generate-dev-certs.sh
@@ -127,12 +139,12 @@ ferrous-iam/
 powershell -ExecutionPolicy Bypass -File scripts/generate-dev-certs.ps1
 ```
 
-### 2. Launch Kanidm Daemon
+### 3. Launch Kanidm Daemon
 ```bash
 docker compose up -d
 ```
 
-### 3. Provision Human Personas & M2M Service Accounts
+### 4. Provision Human Personas & M2M Service Accounts
 
 You can provision all 3 RBAC personas and 6 M2M service accounts using the automated cross-platform scripts:
 
@@ -148,17 +160,22 @@ powershell -ExecutionPolicy Bypass -File scripts/provision-human-rbac.ps1
 powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
 ```
 
-### 4. Kanidm Web UI & Administrative Console
+### 5. Kanidm Web UI & Administrative Console
 
 Kanidm includes a built-in Web UI accessible directly from your browser:
 * **Web UI URL:** `https://localhost:8443`
-* **Admin Login:** `admin.sec` (Password: `AdminSecurityMaster2026!`)
+* **Admin Username:** `admin.sec`
+* **Where to Find / Configure Login & Credentials:**
+  - In compliance with DevSecOps standards, plaintext passwords are **never committed to Git**.
+  - The administrator password is read from the `ADMIN_SEC_PASSWORD` variable in your local `.env` file (copied from `.env.example`).
+  - Persona passwords are configured via `CARLOS_SUPPORT_PASSWORD` and `OPS_LEAD_PASSWORD` in `.env`.
+  - In production and CI/CD environments, credentials are dynamically injected via Kubernetes Secrets or Cloud Secret Managers (Vault / AWS Secrets Manager).
 * **Capabilities in UI:**
   - View, manage, and inspect user profiles and groups
   - Register MFA / FIDO2 / WebAuthn security keys
   - Manage OAuth2 / OIDC client integrations and active sessions
 
-### 5. Verify Health and OIDC Discovery
+### 6. Verify Health and OIDC Discovery
 ```bash
 curl -k https://localhost:8443/oauth2/openid/ferrous-frontend/.well-known/openid-configuration
 ```
