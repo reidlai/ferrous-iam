@@ -1,0 +1,47 @@
+{
+  "domain": "ferrouscx.local",
+  "service_accounts": [
+    {
+      "account_id": "svc_stream_replay",
+      "display_name": "Stream Replay Producer Service",
+      "description": "M2M account for stream-replay-rs to publish simulated orders and telemetry to intake brokers",
+      "scopes": ["stream:produce:intake", "telemetry:write"],
+      "token_exchange_enabled": true
+    },
+    {
+      "account_id": "svc_ferrous_cqrses",
+      "display_name": "CQRS/ES Event Engine Service",
+      "description": "M2M account for ferrous-cqrses to consume orders/intake and emit consolidated domain events",
+      "scopes": ["stream:consume:intake", "stream:produce:consolidated", "eventstore:append"],
+      "token_exchange_enabled": true
+    },
+    {
+      "account_id": "svc_ferrous_streaming",
+      "display_name": "Streaming Pipeline Orchestrator Service",
+      "description": "M2M account for Arroyo streaming pipelines and broker admin",
+      "scopes": ["stream:admin", "lakehouse:sink:2pc", "telemetry:write"],
+      "token_exchange_enabled": true
+    },
+    {
+      "account_id": "svc_ferrous_lakehouse",
+      "display_name": "Lakehouse Storage Maintenance Service",
+      "description": "M2M account for Delta Lake / Iceberg maintenance, catalog sync, and vacuum tasks",
+      "scopes": ["lakehouse:admin", "lakehouse:read", "lakehouse:vacuum", "catalog:sync"],
+      "token_exchange_enabled": true
+    },
+    {
+      "account_id": "svc_ferrous_api",
+      "display_name": "Ferrous API Gateway Service",
+      "description": "M2M account for ferrous-api command dispatch, token exchange, and query execution",
+      "scopes": ["api:gateway", "command:dispatch", "query:lakehouse", "auth:introspect"],
+      "token_exchange_enabled": true
+    },
+    {
+      "account_id": "svc_ferrous_agent",
+      "display_name": "Autonomous Resolution Agent Service",
+      "description": "M2M account for autonomous agent reasoning, vector embeddings, and action proposal dispatch",
+      "scopes": ["agent:reasoning", "vectordb:query", "proposal:submit", "lakehouse:read"],
+      "token_exchange_enabled": true
+    }
+  ]
+}
