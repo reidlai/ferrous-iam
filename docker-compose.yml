@@ -1,0 +1,31 @@
+services:
+  ferrous-iam:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ferrous-iam:latest
+    container_name: ferrous-iam
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+      - "3636:3636"
+    volumes:
+      - ./config/server.toml:/etc/kanidm/server.toml:ro
+      - ./config/certs:/etc/kanidm/certs:ro
+      - kanidm_data:/data
+    environment:
+      - KANIDM_CONFIG_PATH=/etc/kanidm/server.toml
+    healthcheck:
+      test: ["CMD", "/sbin/kanidmd", "version"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  kanidm_data:
+    name: ferrous_kanidm_data

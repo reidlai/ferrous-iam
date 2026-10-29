@@ -1,0 +1,21 @@
+# Ignore local development certificates & private keys
+config/certs/*.pem
+config/certs/*.key
+config/certs/*.crt
+
+# Ignore secrets and local environment variables (DevSecOps)
+.env
+.env.local
+.secrets/
+*.secret
+
+# Ignore local runtime database & logs
+data/
+*.db
+*.log
+
+# Ignore OS & editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

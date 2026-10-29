@@ -5,7 +5,7 @@
 [![Component Type: Identity & Access Management](https://img.shields.io/badge/component-IAM%20%26%20Auth-blue.svg)](https://github.com/reidlai/ferrouscx-bmad)
 [![License: MPL-2.0 / MIT](https://img.shields.io/badge/license-MPL--2.0%20%2F%20MIT-green.svg)](LICENSE)
 [![DevSecOps CI: Tier 2](https://img.shields.io/badge/DevSecOps%20CI-Tier%202%20Passing-brightgreen.svg)](.github/workflows/devsecops-infra-ci.yml)
-[![Container Security: Trivy Passing](https://img.shields.io/badge/Trivy-0%20High%2FCritical-brightgreen.svg)](#container-security--devsecops)
+[![Container Security: Trivy Passing](https://img.shields.io/badge/Trivy-0%20High%2FCritical-brightgreen.svg)](#container-security--devsecops-tier-2-gate)
 [![Target: Kanidm Rust IdP](https://img.shields.io/badge/engine-Kanidm%20(Pure%20Rust)-orange.svg)](#system-architecture)
 
 **`ferrous-iam`** is the dedicated Authentication and Authorization (Identity & Access Management) submodule of the **FerrousCX** enterprise customer experience platform. Built on **Kanidm**—a pure-Rust, memory-safe identity management engine—it provides an enterprise-grade OpenID Connect (OIDC) and OAuth2 identity provider (IdP) with zero JVM and zero Python dependencies.
@@ -52,28 +52,28 @@ flowchart TD
 
 ## 👥 Pre-Seeded Identities & RBAC Roles
 
-To ensure friction-free local evaluation, the submodule automatically provisions three demo personas upon boot:
+To ensure friction-free local evaluation while strictly maintaining DevSecOps hygiene (preventing committed credentials in Git), the submodule provisions three demo personas whose credentials are decoupled and injected via environment variables (`.env` file):
 
-| Username | Default Password | Role | Permissions & Scope |
+| Username | Role | Credential Source (Env Var) | Permissions & Scope |
 | :--- | :--- | :--- | :--- |
-| **`carlos`** | `carlos_password` | `SupportSpecialist` | Access order resolution canvas, search reviews via Qdrant, request courtesy credits up to $15.00 via HITL proposal cards. |
-| **`elena`** | `elena_password` | `Supervisor` | Review high-priority dispute queues, approve courtesy credits exceeding $15.00 (up to $20.00 maximum), review audit logs. |
-| **`admin`** | `admin_password` | `PlatformAdmin` | Manage stream playback multipliers, trigger schema migrations in Arroyo, inspect Apache Iggy topics and partition offsets. |
+| **`carlos.support`** | `customer_specialist` | `$CARLOS_SUPPORT_PASSWORD` | Access order resolution canvas, search reviews via vector search, request courtesy credits up to $15.00 via HITL proposal cards. |
+| **`operations.lead`** | `operations_manager` | `$OPS_LEAD_PASSWORD` | Review high-priority dispute queues, approve courtesy credits up to $20.00 maximum, manage carrier SLAs and operational metrics. |
+| **`admin.sec`** | `system_admin` | `$ADMIN_SEC_PASSWORD` | Manage platform governance, Kanidm security policies, token introspection, and system-level IAM configurations. |
 
 ---
 
 ## 🤖 Machine-to-Machine (M2M) Service Accounts
 
-In addition to interactive user personas, `ferrous-iam` provisions dedicated OAuth2 Client Credentials service accounts to enforce least-privilege security between backend components:
+In addition to interactive user personas, `ferrous-iam` provisions 6 dedicated OAuth2 Client Credentials service accounts to enforce zero-trust least-privilege security between backend components:
 
-| Service Account | Client ID | Scopes | Permitted Actions |
+| Service Account | Display Name | Scopes | Permitted Actions |
 | :--- | :--- | :--- | :--- |
-| **`svc_ferrous_api`** | `svc_api_gateway` | `api:gateway`, `events:publish`, `lakehouse:read` | Accept client requests, publish commands to Iggy, query Delta Lake via DataFusion |
-| **`svc_ferrous_streaming`** | `svc_streaming_engine` | `stream:broker`, `stream:process`, `lakehouse:write` | Manage Iggy topics/partitions, Arroyo stream compute, 2PC Parquet commits |
-| **`svc_ferrous_cqrses`** | `svc_cqrs_handler` | `cqrs:consume`, `cqrs:publish`, `lakehouse:write` | Consume commands from Iggy WAL, emit validated state projections to Arroyo |
-| **`svc_ferrous_query`** | `svc_query_engine` | `lakehouse:read`, `query:vectorized` | Execute vectorized DataFusion SQL scans over Delta Lake Parquet tables |
-| **`svc_ferrous_lakehouse`** | `svc_lakehouse_storage` | `storage:manage`, `storage:audit` | Delta Lake transaction log maintenance (`OPTIMIZE`, `VACUUM`), schema validation |
-| **`svc_stream_replay`** | `svc_traffic_replayer` | `stream:inject` | Inject historical traffic payloads into Apache Iggy via Kafka 9092 gateway |
+| **`svc_stream_replay`** | Stream Replay Producer | `stream:produce:intake`, `telemetry:write` | Publish simulated historical orders and telemetry to intake stream brokers |
+| **`svc_ferrous_cqrses`** | CQRS/ES Event Engine | `stream:consume:intake`, `stream:produce:consolidated`, `eventstore:append` | Consume intake stream, validate domain invariants, and emit consolidated events |
+| **`svc_ferrous_streaming`** | Streaming Orchestrator | `stream:admin`, `lakehouse:sink:2pc`, `telemetry:write` | Arroyo streaming pipelines, broker admin, and two-phase commit Parquet sink |
+| **`svc_ferrous_lakehouse`** | Lakehouse Maintenance | `lakehouse:admin`, `lakehouse:read`, `lakehouse:vacuum`, `catalog:sync` | Delta Lake / Iceberg maintenance, catalog synchronization, vacuum and compaction |
+| **`svc_ferrous_api`** | API Gateway Service | `api:gateway`, `command:dispatch`, `query:lakehouse`, `auth:introspect` | Accept client requests, dispatch commands, token exchange, query Lakehouse |
+| **`svc_ferrous_agent`** | Autonomous Agent Service | `agent:reasoning`, `vectordb:query`, `proposal:submit`, `lakehouse:read` | Vector database semantic queries, LLM reasoning, and HITL action proposal dispatch |
 
 ---
 
@@ -82,7 +82,7 @@ In addition to interactive user personas, `ferrous-iam` provisions dedicated OAu
 1. **Pure-Rust IdP:** Powered by Kanidm, booting in **< 3 seconds** with an idle memory footprint of **< 60 MB RAM**.
 2. **Sub-Millisecond JWT Validation:** `ferrous-api` caches Kanidm's JWKS public keys in-memory, validating JWT signatures locally in **< 0.5 ms** with zero network overhead per request.
 3. **Automated Zero-Touch Provisioning:** Generates self-signed developer certificates, creates OIDC OAuth2 clients (`ferrous-frontend`, `ferrous-api`), and maps RBAC scopes without manual administrative console interaction.
-4. **Machine-to-Machine (M2M) Tokens:** Provides client credentials grant tokens for automated traffic injection scripts (`stream-replay-rs`) and CI pipelines.
+4. **Machine-to-Machine (M2M) Tokens:** Provides client credentials grant tokens for automated traffic injection scripts (`stream-replay-rs`) and internal microservices.
 5. **Centralized Authority & Policy Authority (PAP & PDP):** Acts as the single source of truth for all enterprise authorities, scopes, roles, and authorization policies across FerrousCX. All policy rules and permissions are configured centrally in Kanidm; `ferrous-api` acts strictly as the Policy Enforcement Point (PEP).
 
 ---
@@ -92,60 +92,167 @@ In addition to interactive user personas, `ferrous-iam` provisions dedicated OAu
 ```text
 ferrous-iam/
 ├── .github/workflows/
-│   └── devsecops-infra-ci.yml   # Tier 2 DevSecOps GitHub Actions workflow
-├── .pre-commit-config.yaml       # Universal shift-left pre-commit configuration
+│   └── devsecops-infra-ci.yml   # Tier 2 DevSecOps GitHub Actions workflow (Hadolint, Trivy, Gitleaks)
+├── .env.example                  # Environment variable template for credentials & config
 ├── config/
-│   ├── kanidm-server.toml        # Kanidm daemon configuration
-│   └── certs/                    # Local self-signed dev TLS certificates
+│   ├── server.toml               # Kanidm daemon configuration
+│   ├── seed-rbac.json            # Human personas and role declarations
+│   ├── seed-m2m.json             # 6 M2M service accounts & OAuth2 scopes
+│   └── certs/                    # Local self-signed dev TLS certificates (git-ignored)
 ├── scripts/
-│   ├── provision.sh              # Automated client, scope, and user seeding script
-│   └── entrypoint.sh             # Container bootstrap and provisioning hook
+│   ├── generate-dev-certs.sh     # OpenSSL dev TLS certificate generator (Bash)
+│   ├── generate-dev-certs.ps1    # OpenSSL dev TLS certificate generator (PowerShell)
+│   ├── get-admin-password.sh     # Admin credential recovery & helper (Bash)
+│   ├── get-admin-password.ps1    # Admin credential recovery & helper (PowerShell)
+│   ├── provision-human-rbac.sh   # Personas and group provisioner (Bash)
+│   ├── provision-human-rbac.ps1  # Personas and group provisioner (PowerShell)
+│   ├── provision-m2m.sh          # 6 M2M service account provisioner (Bash)
+│   └── provision-m2m.ps1         # 6 M2M service account provisioner (PowerShell)
 ├── Dockerfile                    # Pinned Kanidm server container manifest
+├── docker-compose.yml            # Local development runtime compose
 └── README.md                     # Submodule documentation & architecture
 ```
 
 ---
 
-## 🛠️ Developer Quickstart
+## 🛠️ Developer Quickstart (< 3 minutes)
 
 ### Prerequisites
-* Docker & Docker Compose (`v2.20+`)
-* OpenSSL (optional, if generating custom certificates outside Docker)
 
-### 1. Launch via Unified Local Runtime (`ferrous-docker`)
-The easiest way to run `ferrous-iam` is through the central Docker Compose environment:
+| OS Platform | Container Runtime | CLI / Scripting Tools | Cryptography |
+| :--- | :--- | :--- | :--- |
+| **Linux / macOS** | Docker & Docker Compose (`v2.20+`) | Bash (`4.0+`) | `openssl` (installed via system package manager) |
+| **Windows** | Docker Desktop (with WSL 2 engine running) | PowerShell (`5.1` or `7+`) | `openssl.exe` (included with Git for Windows in `C:\Program Files\Git\usr\bin` or Winget) |
+
+---
+
+### Step 1: Initialize Local Environment Variables (`.env`)
+
+In compliance with DevSecOps guidelines, plaintext credentials are never committed to Git. Instead, settings and secrets are decoupled into a local `.env` file that is git-ignored.
+
+Copy the provided environment template to initialize your local `.env`:
 
 ```bash
-cd ../ferrous-docker
-docker compose up -d ferrous-iam
+# On Linux / macOS
+cp .env.example .env
 ```
 
-### 2. Standalone Build & Run
-To run `ferrous-iam` in complete isolation:
+```powershell
+# On Windows PowerShell
+Copy-Item .env.example .env
+```
+
+*(Optional: You can inspect and adjust configuration variables in `.env` if desired for your local setup.)*
+
+---
+
+### Step 2: Generate Development TLS Certificates
+
+Kanidm requires valid TLS certificates to boot. Generate self-signed certificates into `config/certs/`:
 
 ```bash
-# Build the container
-docker build -t ferrous-iam:latest .
+# On Linux / macOS
+./scripts/generate-dev-certs.sh
+```
 
-# Run with persistent volume for identity storage
-docker run -d \
-  --name ferrous-iam \
-  -p 8443:8443 \
-  -p 3636:3636 \
-  -v kanidm_data:/data \
-  ferrous-iam:latest
+```powershell
+# On Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/generate-dev-certs.ps1
+```
 
-# Verify health and OIDC discovery
-curl -k https://localhost:8443/oauth2/openid/ferrous-frontend/.well-known/openid-configuration
+---
+
+### Step 3: Launch Kanidm Daemon
+
+Ensure your Docker engine is running, then boot the container in the background:
+
+```bash
+# On Linux / macOS
+docker compose up -d
+```
+
+```powershell
+# On Windows PowerShell (ensure Docker Desktop shows "Engine running")
+docker compose up -d
+
+# Verify container is running and healthy:
+docker compose ps
+```
+
+---
+
+### Step 4: Provision Human Personas & M2M Service Accounts
+
+Once the container is healthy, provision the 3 RBAC personas and 6 M2M service accounts:
+
+```bash
+# On Linux / macOS
+./scripts/provision-human-rbac.sh
+./scripts/provision-m2m.sh
+```
+
+```powershell
+# On Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/provision-human-rbac.ps1
+powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
+```
+
+---
+
+### Step 5: Kanidm Web UI & Administrative Console
+
+Kanidm includes a built-in Web UI accessible directly from your browser:
+* **Web UI URL:** `https://localhost:8443` (accept the local self-signed certificate warning)
+* **Root Administrator Username:** `admin`
+
+#### Initial Admin Login:
+1. Kanidm's built-in root administrator username is **`admin`** (not `admin.sec`).
+2. Run the credential recovery script to retrieve the admin one-time login token:
+   ```bash
+   # On Linux / macOS
+   ./scripts/get-admin-password.sh
+   ```
+   ```powershell
+   # On Windows PowerShell
+   powershell -ExecutionPolicy Bypass -File scripts/get-admin-password.ps1
+   ```
+   *(This also saves the active password to the git-ignored `.secrets/admin_password.txt` file).*
+3. Open `https://localhost:8443` in your browser.
+4. Type **`admin`** in the Username box and click **Begin**.
+5. Paste the generated password into the password prompt to log into the Kanidm Management Console.
+
+* **Capabilities in UI:**
+  - View, manage, and inspect user profiles and groups
+  - Register MFA / FIDO2 / WebAuthn security keys
+  - Manage OAuth2 / OIDC client integrations and active sessions
+
+---
+
+### Step 6: Verify Health and Daemon Status
+
+Verify that the Kanidm daemon is healthy and responding over HTTPS:
+
+```bash
+# On Linux / macOS
+curl -k -I https://localhost:8443/status
+```
+
+```powershell
+# On Windows PowerShell (using curl.exe to avoid PowerShell's curl alias)
+curl.exe -k -I https://localhost:8443/status
+
+# Or using native PowerShell cmdlet (PowerShell 7+)
+Invoke-WebRequest -SkipCertificateCheck -Uri https://localhost:8443/status
 ```
 
 ---
 
 ## 🔒 Container Security & DevSecOps (Tier 2 Gate)
 
-Bound by **AD-13**, `ferrous-iam` implements strict container security standards:
+Bound by **AD-13**, `ferrous-iam` implements strict container security standards enforced via `.github/workflows/devsecops-infra-ci.yml`:
 
 * **Non-Root Execution:** The Kanidm service runs under the unprivileged `kanidm:kanidm` (UID 10001) user.
-* **Pinned Base Images:** Built against cryptographically pinned official releases.
-* **Continuous Vulnerability Auditing:** Tested with `trivy` with a zero HIGH/CRITICAL vulnerability tolerance.
+* **Pinned Base Images:** Built against cryptographically pinned official releases (`kanidm/server:1.11.2`).
+* **Continuous Vulnerability Auditing:** Tested with `trivy` with a zero HIGH/CRITICAL vulnerability tolerance (`exit-code: 1`).
 * **Linting:** Scanned with `hadolint` for Dockerfile best practices.
+* **Secret Detection:** Scanned with `gitleaks` to prevent accidental credential leakage in repository history.
