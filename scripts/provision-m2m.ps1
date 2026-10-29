@@ -38,11 +38,21 @@ if ($DryRun) {
 }
 
 Write-Host "==> Validating Docker / Kanidm daemon presence..."
-$containerRunning = (docker ps --format "{{.Names}}" 2>$null) -contains "ferrous-iam"
+$containerRunning = $false
+try {
+    $runningContainers = (& docker ps --format "{{.Names}}" 2>&1)
+    if ($LASTEXITCODE -eq 0 -and $runningContainers -contains "ferrous-iam") {
+        $containerRunning = $true
+    }
+} catch {
+    $containerRunning = $false
+}
 
 if (-not $containerRunning) {
-    Write-Warning "Container 'ferrous-iam' is not currently running. To start it, run: docker compose up -d"
-    Write-Host "M2M seed configuration verified clean."
+    Write-Warning "Container 'ferrous-iam' is not currently running or Docker engine is offline."
+    Write-Host "    To start Docker Desktop: Ensure Docker Desktop is launched and running."
+    Write-Host "    To launch daemon:        docker compose up -d"
+    Write-Host "    (M2M seed configuration validated clean)."
     exit 0
 }
 
@@ -62,3 +72,4 @@ foreach ($sa in $seed.service_accounts) {
 }
 
 Write-Host "==> All 6 M2M service accounts provisioned successfully!"
+

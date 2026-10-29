@@ -67,3 +67,4 @@ if command -v jq >/dev/null 2>&1; then
 fi
 
 echo "==> All 6 M2M service accounts provisioned successfully!"
+

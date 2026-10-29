@@ -63,3 +63,4 @@ $KANIDM_CMD person credential create-password admin.sec "AdminSecurityMaster2026
 $KANIDM_CMD group add_members system_admin admin.sec 2>/dev/null || true
 
 echo "==> Human RBAC personas and basic auth policies successfully configured!"
+
