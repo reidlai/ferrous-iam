@@ -102,6 +102,8 @@ ferrous-iam/
 ├── scripts/
 │   ├── generate-dev-certs.sh     # OpenSSL dev TLS certificate generator (Bash)
 │   ├── generate-dev-certs.ps1    # OpenSSL dev TLS certificate generator (PowerShell)
+│   ├── get-admin-password.sh     # Admin credential recovery & helper (Bash)
+│   ├── get-admin-password.ps1    # Admin credential recovery & helper (PowerShell)
 │   ├── provision-human-rbac.sh   # Personas and group provisioner (Bash)
 │   ├── provision-human-rbac.ps1  # Personas and group provisioner (PowerShell)
 │   ├── provision-m2m.sh          # 6 M2M service account provisioner (Bash)
@@ -205,15 +207,16 @@ Kanidm includes a built-in Web UI accessible directly from your browser:
 
 #### Initial Admin Login:
 1. Kanidm's built-in root administrator username is **`admin`** (not `admin.sec`).
-2. Generate an admin recovery password via Docker:
+2. Run the credential recovery script to retrieve the admin one-time login token:
    ```bash
    # On Linux / macOS
-   docker exec -it ferrous-iam /sbin/kanidmd recover-account -c /etc/kanidm/server.toml admin
+   ./scripts/get-admin-password.sh
    ```
    ```powershell
    # On Windows PowerShell
-   docker exec -it ferrous-iam /sbin/kanidmd recover-account -c /etc/kanidm/server.toml admin
+   powershell -ExecutionPolicy Bypass -File scripts/get-admin-password.ps1
    ```
+   *(This also saves the active password to the git-ignored `.secrets/admin_password.txt` file).*
 3. Open `https://localhost:8443` in your browser.
 4. Type **`admin`** in the Username box and click **Begin**.
 5. Paste the generated password into the password prompt to log into the Kanidm Management Console.
