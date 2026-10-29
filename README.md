@@ -133,15 +133,32 @@ docker compose up -d
 ```
 
 ### 3. Provision Human Personas & M2M Service Accounts
-```bash
-# Provision RBAC personas
-./scripts/provision-human-rbac.sh
 
-# Provision M2M accounts
+You can provision all 3 RBAC personas and 6 M2M service accounts using the automated cross-platform scripts:
+
+```bash
+# On Linux / macOS
+./scripts/provision-human-rbac.sh
 ./scripts/provision-m2m.sh
 ```
 
-### 4. Verify Health and OIDC Discovery
+```powershell
+# On Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/provision-human-rbac.ps1
+powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
+```
+
+### 4. Kanidm Web UI & Administrative Console
+
+Kanidm includes a built-in Web UI accessible directly from your browser:
+* **Web UI URL:** `https://localhost:8443`
+* **Admin Login:** `admin.sec` (Password: `AdminSecurityMaster2026!`)
+* **Capabilities in UI:**
+  - View, manage, and inspect user profiles and groups
+  - Register MFA / FIDO2 / WebAuthn security keys
+  - Manage OAuth2 / OIDC client integrations and active sessions
+
+### 5. Verify Health and OIDC Discovery
 ```bash
 curl -k https://localhost:8443/oauth2/openid/ferrous-frontend/.well-known/openid-configuration
 ```
