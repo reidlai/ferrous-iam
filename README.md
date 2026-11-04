@@ -20,7 +20,7 @@ This submodule encapsulates the container image, configuration manifests, TLS ce
 flowchart TD
     subgraph Clients ["Clients"]
         Frontend["ferrous-frontend<br/>(Svelte 5 / OIDC PKCE)"]
-        CLI["Automation & Replayer<br/>(OAuth2 M2M Tokens)"]
+        CLI["API & Agent Services<br/>(OAuth2 M2M Tokens)"]
     end
 
     subgraph IAM ["ferrous-iam Submodule (Kanidm)"]
@@ -64,16 +64,17 @@ To ensure friction-free local evaluation while strictly maintaining DevSecOps hy
 
 ## 🤖 Machine-to-Machine (M2M) Service Accounts
 
-In addition to interactive user personas, `ferrous-iam` provisions 6 dedicated OAuth2 Client Credentials service accounts to enforce zero-trust least-privilege security between backend components:
+In addition to interactive user personas, `ferrous-iam` provisions the **residual machine accounts** that remain after the data platform moved to its own native authentication: two OAuth2 Client Credentials service accounts for the first-party services that call each other. The data platform (Apache Iggy, Arroyo, delta-rs) uses its own native credentials and is not a Kanidm client, and `stream-replay-rs` is a generic tool with no identity-provider dependency.
 
 | Service Account | Display Name | Scopes | Permitted Actions |
 | :--- | :--- | :--- | :--- |
-| **`svc_stream_replay`** | Stream Replay Producer | `stream:produce:intake`, `telemetry:write` | Publish simulated historical orders and telemetry to intake stream brokers |
-| **`svc_ferrous_cqrses`** | CQRS/ES Event Engine | `stream:consume:intake`, `stream:produce:consolidated`, `eventstore:append` | Consume intake stream, validate domain invariants, and emit consolidated events |
-| **`svc_ferrous_streaming`** | Streaming Orchestrator | `stream:admin`, `lakehouse:sink:2pc`, `telemetry:write` | Arroyo streaming pipelines, broker admin, and two-phase commit Parquet sink |
-| **`svc_ferrous_lakehouse`** | Lakehouse Maintenance | `lakehouse:admin`, `lakehouse:read`, `lakehouse:vacuum`, `catalog:sync` | Delta Lake / Iceberg maintenance, catalog synchronization, vacuum and compaction |
-| **`svc_ferrous_api`** | API Gateway Service | `api:gateway`, `command:dispatch`, `query:lakehouse`, `auth:introspect` | Accept client requests, dispatch commands, token exchange, query Lakehouse |
+| **`svc_ferrous_api`** | API Gateway Service | `api:gateway`, `command:dispatch`, `query:lakehouse`, `auth:introspect` | Accept client requests, dispatch commands, token exchange, query the Delta store through the embedded DataFusion |
 | **`svc_ferrous_agent`** | Autonomous Agent Service | `agent:reasoning`, `vectordb:query`, `proposal:submit`, `lakehouse:read` | Vector database semantic queries, LLM reasoning, and HITL action proposal dispatch |
+
+> [!NOTE]
+> **Scopes are indicative.** The exact account and scope set is confirmed in the Story 1.3 rework.
+>
+> **Transition status.** `config/seed-m2m.json` and `scripts/provision-m2m.*` still create the six accounts of the former design (`svc_stream_replay`, `svc_ferrous_cqrses`, `svc_ferrous_streaming`, `svc_ferrous_lakehouse`, `svc_ferrous_api`, `svc_ferrous_agent`) until that story is delivered. Only `svc_ferrous_api` and `svc_ferrous_agent` are part of the target design.
 
 ---
 
@@ -82,7 +83,7 @@ In addition to interactive user personas, `ferrous-iam` provisions 6 dedicated O
 1. **Pure-Rust IdP:** Powered by Kanidm, booting in **< 3 seconds** with an idle memory footprint of **< 60 MB RAM**.
 2. **Sub-Millisecond JWT Validation:** `ferrous-api` caches Kanidm's JWKS public keys in-memory, validating JWT signatures locally in **< 0.5 ms** with zero network overhead per request.
 3. **Automated Zero-Touch Provisioning:** Generates self-signed developer certificates, creates OIDC OAuth2 clients (`ferrous-frontend`, `ferrous-api`), and maps RBAC scopes without manual administrative console interaction.
-4. **Machine-to-Machine (M2M) Tokens:** Provides client credentials grant tokens for automated traffic injection scripts (`stream-replay-rs`) and internal microservices.
+4. **Machine-to-Machine (M2M) Tokens:** Provides client credentials grant tokens for the first-party services `ferrous-api` and `ferrous-agent`.
 5. **Centralized Authority & Policy Authority (PAP & PDP):** Acts as the single source of truth for all enterprise authorities, scopes, roles, and authorization policies across FerrousCX. All policy rules and permissions are configured centrally in Kanidm; `ferrous-api` acts strictly as the Policy Enforcement Point (PEP).
 
 ---
@@ -97,7 +98,7 @@ ferrous-iam/
 ├── config/
 │   ├── server.toml               # Kanidm daemon configuration
 │   ├── seed-rbac.json            # Human personas and role declarations
-│   ├── seed-m2m.json             # 6 M2M service accounts & OAuth2 scopes
+│   ├── seed-m2m.json             # residual M2M service accounts & OAuth2 scopes (target: 2)
 │   └── certs/                    # Local self-signed dev TLS certificates (git-ignored)
 ├── scripts/
 │   ├── generate-dev-certs.sh     # OpenSSL dev TLS certificate generator (Bash)
@@ -106,8 +107,8 @@ ferrous-iam/
 │   ├── get-admin-password.ps1    # Admin credential recovery & helper (PowerShell)
 │   ├── provision-human-rbac.sh   # Personas and group provisioner (Bash)
 │   ├── provision-human-rbac.ps1  # Personas and group provisioner (PowerShell)
-│   ├── provision-m2m.sh          # 6 M2M service account provisioner (Bash)
-│   └── provision-m2m.ps1         # 6 M2M service account provisioner (PowerShell)
+│   ├── provision-m2m.sh          # M2M service account provisioner (Bash)
+│   └── provision-m2m.ps1         # M2M service account provisioner (PowerShell)
 ├── Dockerfile                    # Pinned Kanidm server container manifest
 ├── docker-compose.yml            # Local development runtime compose
 └── README.md                     # Submodule documentation & architecture
@@ -183,7 +184,7 @@ docker compose ps
 
 ### Step 4: Provision Human Personas & M2M Service Accounts
 
-Once the container is healthy, provision the 3 RBAC personas and 6 M2M service accounts:
+Once the container is healthy, provision the 3 RBAC personas and the residual M2M service accounts (see the transition note above):
 
 ```bash
 # On Linux / macOS
