@@ -72,9 +72,7 @@ In addition to interactive user personas, `ferrous-iam` provisions the **residua
 | **`svc_ferrous_agent`** | Autonomous Agent Service | `agent:reasoning`, `vectordb:query`, `proposal:submit`, `lakehouse:read` | Vector database semantic queries, LLM reasoning, and HITL action proposal dispatch |
 
 > [!NOTE]
-> **Scopes are indicative.** The exact account and scope set is confirmed in the Story 1.3 rework.
->
-> **Transition status.** `config/seed-m2m.json` and `scripts/provision-m2m.*` still create the six accounts of the former design (`svc_stream_replay`, `svc_ferrous_cqrses`, `svc_ferrous_streaming`, `svc_ferrous_lakehouse`, `svc_ferrous_api`, `svc_ferrous_agent`) until that story is delivered. Only `svc_ferrous_api` and `svc_ferrous_agent` are part of the target design.
+> **Scopes are indicative** and are defined in `config/seed-m2m.json`. Story 1.3 rework reduced the Kanidm M2M accounts to these two; the four former data-platform service accounts no longer exist.
 
 ---
 
@@ -98,7 +96,7 @@ ferrous-iam/
 ├── config/
 │   ├── server.toml               # Kanidm daemon configuration
 │   ├── seed-rbac.json            # Human personas and role declarations
-│   ├── seed-m2m.json             # residual M2M service accounts & OAuth2 scopes (target: 2)
+│   ├── seed-m2m.json             # M2M service accounts (2) & OAuth2 scopes
 │   └── certs/                    # Local self-signed dev TLS certificates (git-ignored)
 ├── scripts/
 │   ├── generate-dev-certs.sh     # OpenSSL dev TLS certificate generator (Bash)
@@ -184,7 +182,7 @@ docker compose ps
 
 ### Step 4: Provision Human Personas & M2M Service Accounts
 
-Once the container is healthy, provision the 3 RBAC personas and the residual M2M service accounts (see the transition note above):
+Once the container is healthy, provision the 3 RBAC personas and the two M2M service accounts:
 
 ```bash
 # On Linux / macOS

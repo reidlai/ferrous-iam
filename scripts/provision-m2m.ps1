@@ -25,7 +25,7 @@ function Get-Sha256Fingerprint([string]$text) {
 }
 
 if ($DryRun) {
-    Write-Host "==> DRY-RUN: Validating 6 M2M service account profiles and scopes..."
+    Write-Host "==> DRY-RUN: Validating 2 M2M service account profiles and scopes..."
     foreach ($sa in $seed.service_accounts) {
         $mockSecret = "dev-secret-ferrouscx-$($sa.account_id)"
         $fingerprint = Get-Sha256Fingerprint $mockSecret
@@ -33,7 +33,7 @@ if ($DryRun) {
         Write-Host "         Scopes:       $($sa.scopes -join ', ')"
         Write-Host "         Fingerprint:  $fingerprint (Secret REDACTED)"
     }
-    Write-Host "==> DRY-RUN completed successfully. All 6 M2M accounts verified."
+    Write-Host "==> DRY-RUN completed successfully. Both M2M accounts verified."
     exit 0
 }
 
@@ -71,5 +71,5 @@ foreach ($sa in $seed.service_accounts) {
     }
 }
 
-Write-Host "==> All 6 M2M service accounts provisioned successfully!"
+Write-Host "==> Both M2M service accounts provisioned successfully!"
 

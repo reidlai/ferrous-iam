@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUBMODULE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-ACCOUNT="${1:-svc_ferrous_lakehouse}"
+ACCOUNT="${1:-svc_ferrous_api}"
 
 SECRETS_DIR="${SUBMODULE_DIR}/.secrets/tokens"
 mkdir -p "$SECRETS_DIR"
@@ -26,13 +26,8 @@ echo "  Service Account: ${ACCOUNT}"
 echo "  Bearer Token:    ${TOKEN_VALUE}"
 echo "=========================================================="
 echo ""
-echo "To configure downstream submodules (e.g. ferrous-lakehouse), add to your .env:"
-if [ "$ACCOUNT" = "svc_ferrous_lakehouse" ]; then
-    echo "  LAKEHOUSE_SERVICE_ACCOUNT=${ACCOUNT}"
-    echo "  LAKEHOUSE_SERVICE_TOKEN=${TOKEN_VALUE}"
-else
-    echo "  SERVICE_ACCOUNT=${ACCOUNT}"
-    echo "  SERVICE_TOKEN=${TOKEN_VALUE}"
-fi
+echo "To configure downstream services (e.g. ferrous-api), add to your .env:"
+echo "  SERVICE_ACCOUNT=${ACCOUNT}"
+echo "  SERVICE_TOKEN=${TOKEN_VALUE}"
 echo ""
 echo "==> Saved to local git-ignored file: .secrets/tokens/${ACCOUNT}.token"
