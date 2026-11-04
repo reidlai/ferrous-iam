@@ -34,7 +34,7 @@ compute_fingerprint() {
 echo "==> Loaded M2M configuration: $SEED_FILE"
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    echo "==> DRY-RUN: Validating 6 M2M service accounts..."
+    echo "==> DRY-RUN: Validating 2 M2M service accounts..."
     if command -v jq >/dev/null 2>&1; then
         jq -r '.service_accounts[] | "    [SA] " + .account_id + " (" + .display_name + ")\n         Scopes: " + (.scopes | join(", "))' "$SEED_FILE"
     else
@@ -66,5 +66,5 @@ if command -v jq >/dev/null 2>&1; then
     done
 fi
 
-echo "==> All 6 M2M service accounts provisioned successfully!"
+echo "==> Both M2M service accounts provisioned successfully!"
 

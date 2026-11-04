@@ -1,6 +1,6 @@
 # PowerShell Script to Issue / Retrieve M2M Service Account Tokens for Submodules
 param(
-    [string]$Account = "svc_ferrous_lakehouse"
+    [string]$Account = "svc_ferrous_api"
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,10 +8,6 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $submoduleDir = Split-Path -Parent $scriptDir
 
 $validAccounts = @(
-    "svc_stream_replay",
-    "svc_ferrous_cqrses",
-    "svc_ferrous_streaming",
-    "svc_ferrous_lakehouse",
     "svc_ferrous_api",
     "svc_ferrous_agent"
 )
@@ -48,13 +44,8 @@ Write-Host "  Service Account: $Account" -ForegroundColor Cyan
 Write-Host "  Bearer Token:    $tokenValue" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "To configure downstream submodules (e.g. ferrous-lakehouse), add to your .env:" -ForegroundColor White
-if ($Account -eq "svc_ferrous_lakehouse") {
-    Write-Host "  LAKEHOUSE_SERVICE_ACCOUNT=$Account" -ForegroundColor Yellow
-    Write-Host "  LAKEHOUSE_SERVICE_TOKEN=$tokenValue" -ForegroundColor Yellow
-} else {
-    Write-Host "  SERVICE_ACCOUNT=$Account" -ForegroundColor Yellow
-    Write-Host "  SERVICE_TOKEN=$tokenValue" -ForegroundColor Yellow
-}
+Write-Host "To configure downstream services (e.g. ferrous-api), add to your .env:" -ForegroundColor White
+Write-Host "  SERVICE_ACCOUNT=$Account" -ForegroundColor Yellow
+Write-Host "  SERVICE_TOKEN=$tokenValue" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "==> Saved to local git-ignored file: .secrets\tokens\$Account.token"
