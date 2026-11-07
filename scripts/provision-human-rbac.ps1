@@ -17,7 +17,8 @@ if (Test-Path $envFile) {
         $line = $_.Trim()
         if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
             $parts = $line.Split("=", 2)
-            [System.Environment]::SetEnvironmentVariable($parts[0].Trim(), $parts[1].Trim(), "Process")
+            $val = $parts[1].Trim().Trim('"').Trim("'")
+            [System.Environment]::SetEnvironmentVariable($parts[0].Trim(), $val, "Process")
         }
     }
 } elseif (Test-Path $envExampleFile) {
@@ -28,7 +29,8 @@ if (Test-Path $envFile) {
             $parts = $line.Split("=", 2)
             $varName = $parts[0].Trim()
             if (-not [System.Environment]::GetEnvironmentVariable($varName, "Process")) {
-                [System.Environment]::SetEnvironmentVariable($varName, $parts[1].Trim(), "Process")
+                $val = $parts[1].Trim().Trim('"').Trim("'")
+                [System.Environment]::SetEnvironmentVariable($varName, $val, "Process")
             }
         }
     }
@@ -89,7 +91,7 @@ foreach ($u in $seed.users) {
     Write-Host "    Ensuring user: $($u.username) ($($u.group)) [Password sourced from $envVar]"
     docker exec -i ferrous-iam kanidm person create $u.username $u.display_name 2>$null | Out-Null
     docker exec -i ferrous-iam kanidm person credential create-password $u.username $password 2>$null | Out-Null
-    docker exec -i ferrous-iam kanidm group add_members $u.group $u.username 2>$null | Out-Null
+    docker exec -i ferrous-iam kanidm group add-members $u.group $u.username 2>$null | Out-Null
 }
 
 Write-Host "==> Human RBAC personas provisioned successfully!"
