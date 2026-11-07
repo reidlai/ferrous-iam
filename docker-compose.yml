@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: ferrous-iam:latest
     container_name: ferrous-iam
+    user: "10001:10001"
     restart: unless-stopped
     ports:
       - "8443:8443"

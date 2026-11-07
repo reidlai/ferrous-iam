@@ -5,8 +5,12 @@ FROM kanidm/server:1.11.2
 LABEL org.opencontainers.image.title="ferrous-iam" \
       org.opencontainers.image.description="Hardened pure-Rust Kanidm Identity & Access Management service for FerrousCX" \
       org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.source="https://github.com/reidlai/ferrous-cx" \
       org.opencontainers.image.vendor="FerrousCX" \
       org.opencontainers.image.licenses="MPL-2.0"
+
+# Default configuration path
+ENV KANIDM_CONFIG_PATH=/etc/kanidm/server.toml
 
 # Expose HTTPS (WebUI/OAuth2/OIDC) and LDAPS
 EXPOSE 8443
@@ -14,6 +18,9 @@ EXPOSE 3636
 
 # Volumes for persistent database state and TLS certificates
 VOLUME ["/data", "/etc/kanidm"]
+
+# Run as non-root user (UID 10001 kanidm)
+USER 10001:10001
 
 # Healthcheck validating daemon binary execution via exec form (no shell in scratch container)
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
