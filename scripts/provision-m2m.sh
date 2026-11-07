@@ -51,20 +51,23 @@ fi
 
 echo "==> Executing idempotent M2M provisioning inside container..."
 
-if command -v jq >/dev/null 2>&1; then
-    jq -c '.service_accounts[]' "$SEED_FILE" | while read -r item; do
-        sa_id=$(echo "$item" | jq -r '.account_id')
-        sa_name=$(echo "$item" | jq -r '.display_name')
-        echo "    Ensuring service account: $sa_id"
-        docker exec -i ferrous-iam kanidm service-account create "$sa_id" "$sa_name" 2>/dev/null || true
-        
-        token=$(docker exec -i ferrous-iam kanidm service-account api-token generate "$sa_id" "default-token" 2>/dev/null || true)
-        if [ -n "$token" ]; then
-            fp=$(compute_fingerprint "$token")
-            echo "    Credential issued for $sa_id (Fingerprint: $fp, secret REDACTED)"
-        fi
-    done
+if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required for live provisioning. Please install jq." >&2
+    exit 1
 fi
+
+jq -c '.service_accounts[]' "$SEED_FILE" | while read -r item; do
+    sa_id=$(echo "$item" | jq -r '.account_id')
+    sa_name=$(echo "$item" | jq -r '.display_name')
+    echo "    Ensuring service account: $sa_id"
+    docker exec -i ferrous-iam kanidm service-account create "$sa_id" "$sa_name" 2>/dev/null || true
+    
+    token=$(docker exec -i ferrous-iam kanidm service-account api-token generate "$sa_id" "default-token" 2>/dev/null || true)
+    if [ -n "$token" ]; then
+        fp=$(compute_fingerprint "$token")
+        echo "    Credential issued for $sa_id (Fingerprint: $fp, secret REDACTED)"
+    fi
+done
 
 echo "==> Both M2M service accounts provisioned successfully!"
 

@@ -34,7 +34,8 @@ if (-not (Test-Path $tokenFile)) {
     Set-Content -Path $tokenFile -Value "ferrous_jwt_m2m_${Account}_$token" -Force
 }
 
-$tokenValue = (Get-Content -Path $tokenFile -Raw).Trim()
+$raw = Get-Content -Path $tokenFile -Raw -ErrorAction SilentlyContinue
+$tokenValue = if ($raw) { $raw.Trim() } else { "" }
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Green
