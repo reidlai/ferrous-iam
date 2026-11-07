@@ -28,6 +28,7 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = localhost
 DNS.2 = ferrous-iam
+DNS.3 = ferrouscx.local
 IP.1 = 127.0.0.1
 IP.2 = ::1
 "@
@@ -52,5 +53,5 @@ if (Get-Command openssl -ErrorAction SilentlyContinue) {
     Write-Host "    - Key:   $keyPath"
 } else {
     Remove-Item -Force $cnfFile -ErrorAction SilentlyContinue
-    Write-Warning "OpenSSL command not found in PATH. Please install OpenSSL or generate certificates via Docker container."
+    throw "OpenSSL command not found in PATH. Please install OpenSSL or generate certificates via Docker container."
 }

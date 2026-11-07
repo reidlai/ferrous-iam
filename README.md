@@ -4,7 +4,7 @@
 
 [![Component Type: Identity & Access Management](https://img.shields.io/badge/component-IAM%20%26%20Auth-blue.svg)](https://github.com/reidlai/ferrous-cx)
 [![License: MPL-2.0 / MIT](https://img.shields.io/badge/license-MPL--2.0%20%2F%20MIT-green.svg)](LICENSE)
-[![DevSecOps CI: Tier 2](https://img.shields.io/badge/DevSecOps%20CI-Tier%202%20Passing-brightgreen.svg)](.github/workflows/devsecops-infra-ci.yml)
+[![DevSecOps CI: Tier 2](https://img.shields.io/badge/DevSecOps%20CI-Tier%202%20Compliant-brightgreen.svg)](#container-security--devsecops-tier-2-gate)
 [![Container Security: Trivy Passing](https://img.shields.io/badge/Trivy-0%20High%2FCritical-brightgreen.svg)](#container-security--devsecops-tier-2-gate)
 [![Target: Kanidm Rust IdP](https://img.shields.io/badge/engine-Kanidm%20(Pure%20Rust)-orange.svg)](#system-architecture)
 
@@ -32,6 +32,7 @@ flowchart TD
     subgraph Services ["FerrousCX Services"]
         Gateway["ferrous-api<br/>(Axum Gateway & JWKS Validator)"]
         CQRS["ferrous-cqrses<br/>(Domain Invariant Enforcement)"]
+        Agent["ferrous-agent<br/>(Autonomous Reasoning & HITL)"]
     end
 
     Frontend -->|1. Authenticate via OIDC PKCE| Kanidm
@@ -39,6 +40,7 @@ flowchart TD
     Frontend -->|2. Dispatch API Requests + Bearer JWT| Gateway
     Gateway -.->|Cached JWKS Signature Check| Kanidm
     Gateway -->|3. Validated Persona Claims| CQRS
+    Gateway -->|4. Task Dispatch / Reasoning| Agent
 ```
 
 ### Communication Protocols & Ports
@@ -90,8 +92,6 @@ In addition to interactive user personas, `ferrous-iam` provisions the **residua
 
 ```text
 ferrous-iam/
-├── .github/workflows/
-│   └── devsecops-infra-ci.yml   # Tier 2 DevSecOps GitHub Actions workflow (Hadolint, Trivy, Gitleaks)
 ├── .env.example                  # Environment variable template for credentials & config
 ├── config/
 │   ├── server.toml               # Kanidm daemon configuration
@@ -103,6 +103,8 @@ ferrous-iam/
 │   ├── generate-dev-certs.ps1    # OpenSSL dev TLS certificate generator (PowerShell)
 │   ├── get-admin-password.sh     # Admin credential recovery & helper (Bash)
 │   ├── get-admin-password.ps1    # Admin credential recovery & helper (PowerShell)
+│   ├── get-service-token.sh      # M2M OAuth2 service token retrieval helper (Bash)
+│   ├── get-service-token.ps1     # M2M OAuth2 service token retrieval helper (PowerShell)
 │   ├── provision-human-rbac.sh   # Personas and group provisioner (Bash)
 │   ├── provision-human-rbac.ps1  # Personas and group provisioner (PowerShell)
 │   ├── provision-m2m.sh          # M2M service account provisioner (Bash)
@@ -120,8 +122,11 @@ ferrous-iam/
 
 | OS Platform | Container Runtime | CLI / Scripting Tools | Cryptography |
 | :--- | :--- | :--- | :--- |
-| **Linux / macOS** | Docker & Docker Compose (`v2.20+`) | Bash (`4.0+`) | `openssl` (installed via system package manager) |
+| **Linux / macOS** | Docker & Docker Compose (`v2.20+`) | Bash (`4.0+`), `jq` | `openssl` (installed via system package manager) |
 | **Windows** | Docker Desktop (with WSL 2 engine running) | PowerShell (`5.1` or `7+`) | `openssl.exe` (included with Git for Windows in `C:\Program Files\Git\usr\bin` or Winget) |
+
+> [!TIP]
+> On Linux / macOS, ensure execution permissions on helper scripts: `chmod +x scripts/*.sh`.
 
 ---
 
@@ -196,6 +201,20 @@ powershell -ExecutionPolicy Bypass -File scripts/provision-human-rbac.ps1
 powershell -ExecutionPolicy Bypass -File scripts/provision-m2m.ps1
 ```
 
+#### (Optional) Mint / Retrieve M2M Service Account Tokens:
+
+Downstream services or developers can test M2M token generation for `svc_ferrous_api` or `svc_ferrous_agent`:
+
+```bash
+# On Linux / macOS
+./scripts/get-service-token.sh svc_ferrous_api
+```
+
+```powershell
+# On Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/get-service-token.ps1 -Account svc_ferrous_api
+```
+
 ---
 
 ### Step 5: Kanidm Web UI & Administrative Console
@@ -248,7 +267,7 @@ Invoke-WebRequest -SkipCertificateCheck -Uri https://localhost:8443/status
 
 ## 🔒 Container Security & DevSecOps (Tier 2 Gate)
 
-Bound by **AD-13**, `ferrous-iam` implements strict container security standards enforced via `.github/workflows/devsecops-infra-ci.yml`:
+Bound by **AD-13**, `ferrous-iam` adheres to strict container security standards (Hadolint, Trivy, and Gitleaks). Continuous integration runner workflows in `.github/` were omitted to conserve free account minutes; baseline DevSecOps scanning standards are enforced locally and in root CI:
 
 * **Non-Root Execution:** The Kanidm service runs under the unprivileged `kanidm:kanidm` (UID 10001) user.
 * **Pinned Base Images:** Built against cryptographically pinned official releases (`kanidm/server:1.11.2`).

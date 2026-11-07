@@ -26,6 +26,7 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = localhost
 DNS.2 = ferrous-iam
+DNS.3 = ferrouscx.local
 IP.1 = 127.0.0.1
 IP.2 = ::1
 EOF
@@ -39,7 +40,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 rm -f "${CNF_FILE}"
 
-chmod 600 "${CERTS_DIR}/key.pem"
+chmod 644 "${CERTS_DIR}/key.pem"
 chmod 644 "${CERTS_DIR}/chain.pem"
 
 echo "==> Development certificates successfully generated:"

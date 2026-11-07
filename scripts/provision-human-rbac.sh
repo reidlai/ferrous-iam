@@ -60,28 +60,31 @@ fi
 
 echo "==> Executing idempotent provisioning inside container..."
 
-if command -v jq >/dev/null 2>&1; then
-    jq -c '.groups[]' "$SEED_FILE" | while read -r group; do
-        gname=$(echo "$group" | jq -r '.name')
-        echo "    Ensuring group: $gname"
-        docker exec -i ferrous-iam kanidm group create "$gname" 2>/dev/null || true
-    done
-
-    jq -c '.users[]' "$SEED_FILE" | while read -r user; do
-        uname=$(echo "$user" | jq -r '.username')
-        dname=$(echo "$user" | jq -r '.display_name')
-        ugroup=$(echo "$user" | jq -r '.group')
-        varname=$(echo "$user" | jq -r '.env_password_var')
-        upass="${!varname:-DevDefaultPass2026!}"
-        if [[ "$upass" =~ ^\<.* ]]; then
-            upass="DevDefaultPass2026!"
-        fi
-
-        echo "    Ensuring user: $uname ($ugroup) [Password sourced from $varname]"
-        docker exec -i ferrous-iam kanidm person create "$uname" "$dname" 2>/dev/null || true
-        docker exec -i ferrous-iam kanidm person credential create-password "$uname" "$upass" 2>/dev/null || true
-        docker exec -i ferrous-iam kanidm group add_members "$ugroup" "$uname" 2>/dev/null || true
-    done
+if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required for live provisioning. Please install jq." >&2
+    exit 1
 fi
+
+jq -c '.groups[]' "$SEED_FILE" | while read -r group; do
+    gname=$(echo "$group" | jq -r '.name')
+    echo "    Ensuring group: $gname"
+    docker exec -i ferrous-iam kanidm group create "$gname" 2>/dev/null || true
+done
+
+jq -c '.users[]' "$SEED_FILE" | while read -r user; do
+    uname=$(echo "$user" | jq -r '.username')
+    dname=$(echo "$user" | jq -r '.display_name')
+    ugroup=$(echo "$user" | jq -r '.group')
+    varname=$(echo "$user" | jq -r '.env_password_var')
+    upass="${!varname:-DevDefaultPass2026!}"
+    if [[ "$upass" =~ ^\<.* ]]; then
+        upass="DevDefaultPass2026!"
+    fi
+
+    echo "    Ensuring user: $uname ($ugroup) [Password sourced from $varname]"
+    docker exec -i ferrous-iam kanidm person create "$uname" "$dname" 2>/dev/null || true
+    docker exec -i ferrous-iam kanidm person credential create-password "$uname" "$upass" 2>/dev/null || true
+    docker exec -i ferrous-iam kanidm group add-members "$ugroup" "$uname" 2>/dev/null || true
+done
 
 echo "==> Human RBAC personas provisioned successfully!"
