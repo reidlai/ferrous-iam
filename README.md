@@ -10,7 +10,7 @@
 
 **`ferrous-iam`** is the dedicated Authentication and Authorization (Identity & Access Management) submodule of the **FerrousCX** enterprise customer experience platform. Built on **Kanidm**—a pure-Rust, memory-safe identity management engine—it provides an enterprise-grade OpenID Connect (OIDC) and OAuth2 identity provider (IdP) with zero JVM and zero Python dependencies.
 
-This submodule encapsulates the container image, configuration manifests, TLS certificate orchestration, and automated user/client provisioning for the FerrousCX stack.
+This submodule encapsulates the generic container image and Kanidm daemon configuration (`server.toml`). Platform-specific persona seeds, client configurations, and dev TLS cert orchestration are managed centrally in `ferrous-cx` (`config/iam/` and `cargo run --bin setup-iam`).
 
 ---
 
@@ -74,7 +74,7 @@ In addition to interactive user personas, `ferrous-iam` provisions the **residua
 | **`svc_ferrous_agent`** | Autonomous Agent Service | `agent:reasoning`, `vectordb:query`, `proposal:submit`, `lakehouse:read` | Vector database semantic queries, LLM reasoning, and HITL action proposal dispatch |
 
 > [!NOTE]
-> **Scopes are indicative** and are defined in `config/seed-m2m.json`. Story 1.3 rework reduced the Kanidm M2M accounts to these two; the four former data-platform service accounts no longer exist.
+> **Scopes are indicative** and are managed in `ferrous-cx/config/iam/seed-m2m.json` (orchestrated via `cargo run --bin setup-iam`). Story 1.3 rework reduced the Kanidm M2M accounts to these two; the four former data-platform service accounts no longer exist.
 
 ---
 
