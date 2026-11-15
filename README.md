@@ -35,12 +35,12 @@ flowchart TD
         Agent["ferrous-agent<br/>(Autonomous Reasoning & HITL)"]
     end
 
-    Frontend -->|1. Authenticate via OIDC PKCE| Kanidm
-    CLI -->|Client Credentials (M2M)| Kanidm
-    Frontend -->|2. Dispatch API Requests + Bearer JWT| Gateway
-    Gateway -.->|Cached JWKS Signature Check| Kanidm
-    Gateway -->|3. Validated Persona Claims| CQRS
-    Gateway -->|4. Task Dispatch / Reasoning| Agent
+    Frontend -->|"1. Authenticate via OIDC PKCE"| Kanidm
+    CLI -->|"Client Credentials (M2M)"| Kanidm
+    Frontend -->|"2. Dispatch API Requests + Bearer JWT"| Gateway
+    Gateway -.->|"Cached JWKS Signature Check"| Kanidm
+    Gateway -->|"3. Validated Persona Claims"| CQRS
+    Gateway -->|"4. Task Dispatch / Reasoning"| Agent
 ```
 
 ### Communication Protocols & Ports
