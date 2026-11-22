@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1.4
 # Hardened Kanidm Server Container for FerrousCX Platform
+FROM alpine:3 AS prep
+RUN mkdir -p /data && chmod 0700 /data
+
 FROM kanidm/server:1.11.2
 
 LABEL org.opencontainers.image.title="ferrous-iam" \
@@ -11,6 +14,9 @@ LABEL org.opencontainers.image.title="ferrous-iam" \
 
 # Default configuration path
 ENV KANIDM_CONFIG_PATH=/etc/kanidm/server.toml
+
+# Ensure /data is pre-owned by UID 10001 (0700) so Docker initializes named volumes with non-root RW permissions
+COPY --from=prep --chown=10001:10001 /data /data
 
 # Expose HTTPS (WebUI/OAuth2/OIDC) and LDAPS
 EXPOSE 8443
